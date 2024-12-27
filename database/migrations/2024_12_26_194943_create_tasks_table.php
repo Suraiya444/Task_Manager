@@ -16,7 +16,8 @@ return new class extends Migration
             $table->string('name')->nullable();
             $table->string('task')->nullable();
             $table->date('assign_date')->nullable();
-            $table->date('namfinish_datee')->nullable();
+            $table->date('finish_date')->nullable();
+            $table->enum('status', ['Pending', 'In Progress', 'Completed'])->default('Pending');
             $table->timestamps();
         });
     }

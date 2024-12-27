@@ -10,10 +10,24 @@ class TaskController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $data=Task::latest()->paginate(10);
-        return view('backend.task.index',compact('data'));
+        $query = Task::query();
+
+        // Filter by status if provided
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Sort by finish date if provided
+        if ($request->filled('sort_by') && $request->sort_by === 'due_date') {
+            $query->orderBy('finish_date', $request->order ?? 'asc');
+        }
+
+        // Default sorting by latest creation date
+        $data = $query->latest()->paginate(10);
+
+        return view('backend.task.index', compact('data'));
     }
 
     /**
@@ -29,10 +43,28 @@ class TaskController extends Controller
      */
     public function store(Request $request)
     {
-        if(Task::create($request->all()))
-            return redirect()->route( 'task.index');
-        else
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'task' => 'required|string|max:255',
+            'assign_date' => 'required|date',
+            'status' => 'required|in:Pending,In Progress,Completed',
+        ]);
+
+        // If status is 'Completed', finish_date should not be required at creation
+        if ($request->status === 'Completed') {
+            $request->validate([
+                'finish_date' => 'required|date|after_or_equal:assign_date',
+            ]);
+        }
+
+        // Create the task
+        $task = Task::create($request->all());
+
+        if ($task) {
+            return redirect()->route('task.index');
+        } else {
             return redirect()->back()->withInput()->with('error', 'Failed to create task');
+        }
     }
 
     /**
@@ -40,7 +72,7 @@ class TaskController extends Controller
      */
     public function show(Task $task)
     {
-        //
+        return view('backend.task.show', compact('task'));
     }
 
     /**
@@ -48,12 +80,11 @@ class TaskController extends Controller
      */
     public function edit($id)
     {
-        
-            $task = Task::find($id);
-            if (!$task) {
-                return redirect()->route('task.index')->with('error', 'Task not found'); 
-            }
-            return view('backend.task.edit', compact('task'));
+        $task = Task::find($id);
+        if (!$task) {
+            return redirect()->route('task.index')->with('error', 'Task not found');
+        }
+        return view('backend.task.edit', compact('task'));
     }
 
     /**
@@ -61,10 +92,31 @@ class TaskController extends Controller
      */
     public function update(Request $request, Task $task)
     {
-        if($task->update($request->all()))
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'task' => 'required|string|max:255',
+            'assign_date' => 'required|date',
+            'status' => 'required|in:Pending,In Progress,Completed',
+        ]);
+
+        // If status is 'Completed', finish_date should be validated
+        if ($request->status === 'Completed') {
+            $request->validate([
+                'finish_date' => 'required|date|after_or_equal:assign_date',
+            ]);
+        } else {
+            // If task is not completed, finish_date should be nullable
+            $request->validate([
+                'finish_date' => 'nullable|date|after_or_equal:assign_date',
+            ]);
+        }
+
+        // Update the task
+        if ($task->update($request->all())) {
             return redirect()->route('task.index');
-        else
-            return redirect()->back()->withInput()->with('error', 'Failed to create task level');
+        } else {
+            return redirect()->back()->withInput()->with('error', 'Failed to update task');
+        }
     }
 
     /**
