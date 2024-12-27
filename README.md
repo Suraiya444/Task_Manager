@@ -45,9 +45,8 @@ The application was designed with simplicity and modularity in mind. Here’s a 
 
 ## Technology Stack
 
-- **HTML5**: Structure and layout of the application.
-- **CSS3**: Styling and design.
-- **JavaScript (ES6)**: Functional logic for CRUD operations, filtering, and sorting.
+- Php
+-Laravel
 
 ---
 
